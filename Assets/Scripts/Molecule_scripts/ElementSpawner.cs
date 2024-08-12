@@ -40,25 +40,47 @@ public class ElementSpawner : MonoBehaviour
         }
     }
 
+
     private void OnClick()
     {
-
-            // Check if the click is over a UI element
+        // Check if the click is over a UI element
         if (EventSystem.current.IsPointerOverGameObject())
         {
-            return;  // Exit the method to prevent spawning an element
+            return;  // Exit the method to prevent spawning a sphere
         }
-        
         Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
 
-        // Set the distance from the camera where the object will be spawned
-        float distance = 2f;  // Adjust this distance as needed
+        if (Keyboard.current.leftShiftKey.isPressed)
+        {
+            DeleteMolecule(ray);
+        }
+        else
+        {
+            // Regular spawn
+            float distance = 2f;
+            Vector3 spawnPosition = ray.GetPoint(distance);
+            SpawnElement(spawnPosition);
+        }
+    }
 
-        // Calculate the spawn position
-        Vector3 spawnPosition = ray.GetPoint(distance);
+    private void DeleteMolecule(Ray ray)
+    {
+        RaycastHit hit;
+        if (Physics.Raycast(ray, out hit))
+        {
+            GameObject clickedObject = hit.collider.gameObject;
 
-        // Place the selected element at the calculated position
-        SpawnElement(spawnPosition);
+            // Check if the clicked object is a molecule
+            if (clickedObject.CompareTag("Molecule"))
+            {
+                // Find the MoleculeGroup this molecule belongs to
+                MoleculeGroup group = clickedObject.GetComponentInParent<MoleculeGroup>();
+                if (group != null)
+                {
+                    group.RemoveMolecule(clickedObject);
+                }
+            }
+        }
     }
 
 

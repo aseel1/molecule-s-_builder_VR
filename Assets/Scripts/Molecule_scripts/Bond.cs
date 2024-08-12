@@ -4,15 +4,12 @@ using UnityEngine;
 
 public class Bond : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
+    public GameObject molecule1;
+    public GameObject molecule2;
 
-    // Update is called once per frame
-    void Update()
+    // Check if this bond is connected to a specific molecule
+    public bool IsConnectedTo(GameObject molecule)
     {
-        
+        return molecule == molecule1 || molecule == molecule2;
     }
 }
