@@ -1,4 +1,4 @@
-Molecule Builder in Unity
+Molecule Builder in Unity <br>
 This project is a molecule builder tool developed in Unity. It allows users to spawn, bond, and manipulate molecules within a 3D space. The tool supports dynamic molecule manipulation, including moving individual molecules and entire molecular structures, with automatic updates to the molecular formula displayed beneath the molecule group.
 
 Features
