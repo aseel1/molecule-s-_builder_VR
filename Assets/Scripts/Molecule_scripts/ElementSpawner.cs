@@ -8,17 +8,26 @@ public class ElementSpawner : MonoBehaviour
 {
     public GameObject hydrogenPrefab;
     public GameObject oxygenPrefab;
-    // Add references for other element prefabs as needed
-
     private GameObject selectedElement;
     private InputAction clickAction;
+    private InputAction rightClickAction;
+    private GameObject draggedMolecule;
+    private MoleculeGroup draggedGroup;
+    private GameObject moleculeToMove;
+    private List<GameObject> connectedBonds = new List<GameObject>();
 
     private void Awake()
     {
-        // Initialize the InputAction for detecting mouse clicks
+        // Init left click
         clickAction = new InputAction(type: InputActionType.Button, binding: "<Mouse>/leftButton");
         clickAction.performed += ctx => OnClick();
         clickAction.Enable();
+
+        // Init right click
+        rightClickAction = new InputAction(type: InputActionType.Button, binding: "<Mouse>/rightButton");
+        rightClickAction.performed += ctx => OnRightClick();
+        rightClickAction.canceled += ctx => OnRightClickRelease();
+        rightClickAction.Enable();
     }
 
     public void SelectHydrogen()
@@ -39,7 +48,6 @@ public class ElementSpawner : MonoBehaviour
             Instantiate(selectedElement, position, Quaternion.identity);
         }
     }
-
 
     private void OnClick()
     {
@@ -63,6 +71,97 @@ public class ElementSpawner : MonoBehaviour
         }
     }
 
+    private void OnRightClick()
+    {
+        Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit))
+        {
+            GameObject clickedObject = hit.collider.gameObject;
+
+            if (clickedObject.CompareTag("Molecule"))
+            {
+                if (Keyboard.current.leftShiftKey.isPressed)
+                {
+                    // Move entire group
+                    draggedMolecule = clickedObject;
+                    draggedGroup = draggedMolecule.GetComponentInParent<MoleculeGroup>();
+                }
+                else if (Keyboard.current.leftCtrlKey.isPressed)
+                {
+                    // Move single molecule and its connected bonds
+                    moleculeToMove = clickedObject;
+                    MoleculeGroup group = moleculeToMove.GetComponentInParent<MoleculeGroup>();
+                    if (group != null)
+                    {
+                        connectedBonds.Clear();
+                        foreach (GameObject bond in group.bonds)
+                        {
+                            if (IsBondConnectedToMolecule(bond, moleculeToMove))
+                            {
+                                connectedBonds.Add(bond);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void OnRightClickRelease()
+    {
+        draggedMolecule = null;
+        draggedGroup = null;
+        moleculeToMove = null;
+        connectedBonds.Clear();
+    }
+
+    private void Update()
+    {
+        if (draggedMolecule != null && draggedGroup != null)
+        {
+            // Move the entire group
+            Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
+            Vector3 targetPosition = ray.GetPoint(2f);  // Adjust distance as needed
+            Vector3 delta = targetPosition - draggedMolecule.transform.position;
+
+            draggedGroup.transform.position += delta;  // Move the entire group
+        }
+        else if (moleculeToMove != null)
+        {
+            // Move the single molecule and its connected bonds
+            Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
+            Vector3 targetPosition = ray.GetPoint(2f);  // Adjust distance as needed
+            Vector3 delta = targetPosition - moleculeToMove.transform.position;
+
+            moleculeToMove.transform.position += delta;  // Move the molecule
+            foreach (GameObject bond in connectedBonds)
+            {
+                UpdateBondPosition(bond);
+            }
+        }
+    }
+
+    private bool IsBondConnectedToMolecule(GameObject bond, GameObject molecule)
+    {
+        // Check if the bond is connected to the molecule
+        return bond.GetComponent<Bond>().IsConnectedTo(molecule);
+    }
+
+    private void UpdateBondPosition(GameObject bond)
+    {
+        Bond bondComponent = bond.GetComponent<Bond>();
+        if (bondComponent != null)
+        {
+            Vector3 startPosition = bondComponent.molecule1.transform.position;
+            Vector3 endPosition = bondComponent.molecule2.transform.position;
+            bond.transform.position = (startPosition + endPosition) / 2;
+            bond.transform.LookAt(endPosition);
+            bond.transform.localScale = new Vector3(bond.transform.localScale.x, bond.transform.localScale.y, Vector3.Distance(startPosition, endPosition));
+        }
+    }
+
     private void DeleteMolecule(Ray ray)
     {
         RaycastHit hit;
@@ -78,15 +177,24 @@ public class ElementSpawner : MonoBehaviour
                 if (group != null)
                 {
                     group.RemoveMolecule(clickedObject);
+                    // Check if the group is empty after removal and destroy it if necessary
+                    if (group.molecules.Count == 0 && group.bonds.Count == 0)
+                    {
+                        Destroy(group.gameObject);
+                    }
+                }
+                else
+                {
+                    // If no group, simply destroy the molecule
+                    Destroy(clickedObject);
                 }
             }
         }
     }
 
-
     private void OnDestroy()
     {
-        // Disable the InputAction when the object is destroyed
         clickAction.Disable();
+        rightClickAction.Disable();
     }
 }
