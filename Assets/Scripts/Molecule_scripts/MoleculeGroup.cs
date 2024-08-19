@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class MoleculeGroup : MonoBehaviour
@@ -7,6 +8,11 @@ public class MoleculeGroup : MonoBehaviour
     public List<GameObject> molecules = new List<GameObject>();  // List of molecules in the group
     public List<GameObject> bonds = new List<GameObject>();      // List of bonds in the group
 
+    // A dictionary to track the count of each type of element (e.g., H, O)
+    private Dictionary<string, int> elementCounts = new Dictionary<string, int>();
+    
+
+    
     // Add a molecule to the group
     public void AddMolecule(GameObject molecule)
     {
@@ -14,6 +20,21 @@ public class MoleculeGroup : MonoBehaviour
         {
             molecules.Add(molecule);
             molecule.transform.SetParent(transform);  // Set the parent to the group for easy movement
+
+
+
+            // Update element count based on the name of the molecule
+            string elementType = molecule.name;
+            if (elementCounts.ContainsKey(elementType))
+            {
+                elementCounts[elementType]++;
+            }
+            else
+            {
+                elementCounts[elementType] = 1;
+            }
+            Debug.Log("Element counts: " + string.Join(", ", elementCounts.Select(kv => kv.Key + ": " + kv.Value)));
+            NotifyMoleculeGroupChanged();
         }
     }
 
@@ -37,6 +58,8 @@ public class MoleculeGroup : MonoBehaviour
 
             // Optionally remove associated bonds
             RemoveAssociatedBonds(molecule);
+            NotifyMoleculeGroupChanged();
+
         }
     }
 
@@ -48,7 +71,7 @@ public class MoleculeGroup : MonoBehaviour
 
             if (bonds[i].GetComponent<Bond>().IsConnectedTo(molecule))
             {
-            Debug.Log("they are");
+                Debug.Log("they are");
                 Destroy(bonds[i]);
                 bonds.RemoveAt(i);
             }
@@ -69,5 +92,28 @@ public class MoleculeGroup : MonoBehaviour
         }
 
         Destroy(gameObject);
+    }
+
+    private void NotifyMoleculeGroupChanged()
+    {
+        MoleculeDisplay display = GetComponent<MoleculeDisplay>();
+        if (display != null)
+        {
+            display.OnMoleculeGroupChanged();
+        }
+    }
+    // Get the molecular formula as a string
+    public string GetMolecularFormula()
+    {
+        string formula = "";
+        foreach (var element in elementCounts)
+        {
+            formula += element.Key;
+            if (element.Value > 1)
+            {
+                formula += element.Value.ToString();
+            }
+        }
+        return formula;
     }
 }

@@ -6,6 +6,7 @@ public class MoleculeBond : MonoBehaviour
 {
     public float bondDistance = 2f;  // Distance within which molecules will bond
     public GameObject bondPrefab;    // Prefab for the bond (e.g., a cylinder)
+    public GameObject moleculeGroupPrefab; // Prefab for the MoleculeGroup
 
     void Update()
     {
@@ -81,8 +82,8 @@ public class MoleculeBond : MonoBehaviour
         else
         {
             // Create a new group if none exists
-            GameObject newGroup = new GameObject("MoleculeGroup");
-            MoleculeGroup moleculeGroup = newGroup.AddComponent<MoleculeGroup>();
+            GameObject newGroup = Instantiate(moleculeGroupPrefab);
+            MoleculeGroup moleculeGroup = newGroup.GetComponent<MoleculeGroup>();
             return moleculeGroup;
         }
     }
@@ -102,8 +103,6 @@ public class MoleculeBond : MonoBehaviour
         Destroy(group2.gameObject);
     }
 
-
     // Helper script to mark molecules as bonded
-public class Bonded : MonoBehaviour { }
-
+    public class Bonded : MonoBehaviour { }
 }
