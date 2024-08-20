@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 545128789134861264}
   - component: {fileID: 1688611526182234519}
   m_Layer: 0
-  m_Name: hydrogen
+  m_Name: Hydrogen
   m_TagString: Molecule
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

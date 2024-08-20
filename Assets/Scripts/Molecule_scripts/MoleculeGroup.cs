@@ -10,9 +10,9 @@ public class MoleculeGroup : MonoBehaviour
 
     // A dictionary to track the count of each type of element (e.g., H, O)
     private Dictionary<string, int> elementCounts = new Dictionary<string, int>();
-    
 
-    
+
+
     // Add a molecule to the group
     public void AddMolecule(GameObject molecule)
     {
@@ -23,8 +23,14 @@ public class MoleculeGroup : MonoBehaviour
 
 
 
+
             // Update element count based on the name of the molecule
-            string elementType = molecule.name;
+            string elementType = molecule.name.Replace("(Clone)", "").Trim();
+            if (ElementSymbols.Symbols.ContainsKey(elementType))
+            {
+                elementType = ElementSymbols.Symbols[elementType];
+            }
+
             if (elementCounts.ContainsKey(elementType))
             {
                 elementCounts[elementType]++;
@@ -54,6 +60,22 @@ public class MoleculeGroup : MonoBehaviour
         if (molecules.Contains(molecule))
         {
             molecules.Remove(molecule);
+            // Update element count based on the name of the molecule
+            string elementType = molecule.name.Replace("(Clone)", "").Trim();
+            if (ElementSymbols.Symbols.ContainsKey(elementType))
+            {
+                elementType = ElementSymbols.Symbols[elementType];
+            }
+
+            if (elementCounts.ContainsKey(elementType))
+            {
+                elementCounts[elementType]--;
+                if (elementCounts[elementType] <= 0)
+                {
+                    elementCounts.Remove(elementType);
+                }
+            }
+
             Destroy(molecule);
 
             // Optionally remove associated bonds
