@@ -124,16 +124,27 @@ public class MoleculeGroup : MonoBehaviour
             display.OnMoleculeGroupChanged();
         }
     }
-    // Get the molecular formula as a string
+    // Get the molecular formula as a string    // Get the molecular formula as a string
     public string GetMolecularFormula()
     {
+        // Define the order of elements
+        List<string> elementOrder = new List<string> { "C", "H", "O", "N", "S", "P" }; // Add more elements as needed
+
+        // Sort the elements based on the defined order
+        var sortedElements = elementCounts.OrderBy(kv => 
+        {
+            int index = elementOrder.IndexOf(kv.Key);
+            return index == -1 ? int.MaxValue : index; // Elements not in the list will be placed at the end
+        }).ThenBy(kv => kv.Key); // Secondary sort by element name
+
+        // Build the formula string
         string formula = "";
-        foreach (var element in elementCounts)
+        foreach (var element in sortedElements)
         {
             formula += element.Key;
             if (element.Value > 1)
             {
-                formula += element.Value.ToString();
+                formula += $"<sub>{element.Value}</sub>"; // Display of the formula text. (with style small number)
             }
         }
         return formula;
