@@ -8,6 +8,7 @@ public class ElementSpawner : MonoBehaviour
 {
     public GameObject hydrogenPrefab;
     public GameObject oxygenPrefab;
+    public GameObject carbonPrefab;
     private GameObject selectedElement;
     private InputAction clickAction;
     private InputAction rightClickAction;
@@ -38,6 +39,12 @@ public class ElementSpawner : MonoBehaviour
     public void SelectOxygen()
     {
         selectedElement = oxygenPrefab;
+    }
+
+
+    public void SelectCarbon()
+    {
+        selectedElement = carbonPrefab;
     }
 
     // Call this method when clicking on the board to place the selected element
