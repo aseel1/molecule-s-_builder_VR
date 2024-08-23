@@ -47,6 +47,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   molecules: []
   bonds: []
+  formulaPanelPrefab: {fileID: 5637282336683619177, guid: 8326f1bffa583b54ebfab2e7f5f8f5fe, type: 3}
 --- !u!114 &-3168906054359556074
 MonoBehaviour:
   m_ObjectHideFlags: 0

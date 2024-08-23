@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 
 public class MoleculeGroup : MonoBehaviour
@@ -8,9 +9,37 @@ public class MoleculeGroup : MonoBehaviour
     public List<GameObject> molecules = new List<GameObject>();  // List of molecules in the group
     public List<GameObject> bonds = new List<GameObject>();      // List of bonds in the group
 
+    public GameObject formulaPanelPrefab;
+    private GameObject formulaPanelInstance;
+    private bool isFormulaPanelPositioned = false; // Flag to check if the formula panel is positioned
+
+    private TextMeshProUGUI formulaText;
     // A dictionary to track the count of each type of element (e.g., H, O)
     private Dictionary<string, int> elementCounts = new Dictionary<string, int>();
 
+
+    private void Start()
+    {
+        // Find the specific canvas
+        Canvas specificCanvas = GameObject.Find("MoleculeTable(canvas)").GetComponent<Canvas>();
+        if (formulaPanelPrefab != null && specificCanvas != null)
+        {
+            // Instantiate the formula panel under the specific canvas
+            formulaPanelInstance = Instantiate(formulaPanelPrefab, specificCanvas.transform);
+
+
+            formulaText = formulaPanelInstance.transform.Find("Fourmla_text").GetComponent<TextMeshProUGUI>();
+            // Initialize the MoleculeDisplay with the formulaText
+            MoleculeDisplay display = GetComponent<MoleculeDisplay>();
+            if (display != null)
+            {
+                display.InitializeDisplay(formulaText);
+            }
+
+            PositionFormulaPanel();
+
+        }
+    }
 
 
     // Add a molecule to the group
@@ -20,9 +49,6 @@ public class MoleculeGroup : MonoBehaviour
         {
             molecules.Add(molecule);
             molecule.transform.SetParent(transform);  // Set the parent to the group for easy movement
-
-
-
 
             // Update element count based on the name of the molecule
             string elementType = molecule.name.Replace("(Clone)", "").Trim();
@@ -39,8 +65,23 @@ public class MoleculeGroup : MonoBehaviour
             {
                 elementCounts[elementType] = 1;
             }
-            Debug.Log("Element counts: " + string.Join(", ", elementCounts.Select(kv => kv.Key + ": " + kv.Value)));
             NotifyMoleculeGroupChanged();
+
+
+        }
+    }
+
+    // Method to position the formula panel
+    public void PositionFormulaPanel()
+    {
+
+        if (!isFormulaPanelPositioned && formulaPanelInstance != null)
+        {
+
+            Vector3 moleculePosition = molecules[1].transform.position; // Use the position of the second molecule
+            Vector3 offset = new Vector3(3, 0, 0); // Adjust the offset as needed
+            formulaPanelInstance.transform.position = moleculePosition + offset;
+            isFormulaPanelPositioned = true; // Set the flag to true after positioning
         }
     }
 
@@ -131,7 +172,7 @@ public class MoleculeGroup : MonoBehaviour
         List<string> elementOrder = new List<string> { "C", "H", "O", "N", "S", "P" }; // Add more elements as needed
 
         // Sort the elements based on the defined order
-        var sortedElements = elementCounts.OrderBy(kv => 
+        var sortedElements = elementCounts.OrderBy(kv =>
         {
             int index = elementOrder.IndexOf(kv.Key);
             return index == -1 ? int.MaxValue : index; // Elements not in the list will be placed at the end

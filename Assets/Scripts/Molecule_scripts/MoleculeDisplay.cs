@@ -9,15 +9,14 @@ public class MoleculeDisplay : MonoBehaviour
     public TextMeshProUGUI formulaText;
     private MoleculeGroup moleculeGroup;
 
-    private void Start()
+    // This method will be called from the MoleculeGroup after the formula panel is instantiated
+    public void InitializeDisplay(TextMeshProUGUI formulaText)
     {
-        formulaText = GameObject.Find("Fourmla_text").GetComponent<TextMeshProUGUI>();
-
+        this.formulaText = formulaText;
         moleculeGroup = GetComponent<MoleculeGroup>();
         UpdateFormulaText();
-
-        
     }
+
 
     // Update the formula text
     private void UpdateFormulaText()
@@ -25,7 +24,6 @@ public class MoleculeDisplay : MonoBehaviour
         if (moleculeGroup != null && formulaText != null)
         {
             formulaText.text = moleculeGroup.GetMolecularFormula();
-            Debug.Log("Updated Formula Text: " + formulaText.text); // Print the formula text to the console
 
         }
     }

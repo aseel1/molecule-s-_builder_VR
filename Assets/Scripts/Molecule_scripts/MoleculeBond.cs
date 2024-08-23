@@ -46,6 +46,9 @@ public class MoleculeBond : MonoBehaviour
         // Find or create a MoleculeGroup to manage the molecules and bonds
         MoleculeGroup group = FindOrCreateGroup(molecule1, molecule2);
 
+
+
+
         // Add molecules and bond to the group
         group.AddMolecule(molecule1);
         group.AddMolecule(molecule2);
