@@ -78,14 +78,19 @@ public class ElementSpawner : MonoBehaviour
         }
     }
 
-    private void OnRightClick()
-    {
-        Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
-        RaycastHit hit;
+   private void OnRightClick()
+{
+    Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
+    RaycastHit hit;
 
-        if (Physics.Raycast(ray, out hit))
+    if (Physics.Raycast(ray, out hit))
+    {
+        // Create a small overlap sphere at the hit point to detect nearby molecules
+        Collider[] colliders = Physics.OverlapSphere(hit.point, 0.5f); // Adjust the radius as needed
+        
+        foreach (Collider collider in colliders)
         {
-            GameObject clickedObject = hit.collider.gameObject;
+            GameObject clickedObject = collider.gameObject;
 
             if (clickedObject.CompareTag("Molecule"))
             {
@@ -115,6 +120,8 @@ public class ElementSpawner : MonoBehaviour
             }
         }
     }
+}
+
 
     private void OnRightClickRelease()
     {
