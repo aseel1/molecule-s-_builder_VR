@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using Unity.Netcode;
 
-public class MoleculeDisplay : MonoBehaviour
+public class MoleculeDisplay : NetworkBehaviour
 {
     public TextMeshProUGUI formulaText;
     private MoleculeGroup moleculeGroup;

@@ -2,10 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
-
+using Unity.Netcode;
 [RequireComponent(typeof(CharacterController))]
-public class FPScontroller : MonoBehaviour
+public class FPScontroller : NetworkBehaviour
 {
+
     public Camera playerCamera;
     public float walkSpeed = 6f;
     public float runSpeed = 12f;
@@ -14,7 +15,7 @@ public class FPScontroller : MonoBehaviour
 
     public float lookSpeed = 2f;
     public float lookXLimit = 45f;
-
+    public AudioListener audioListener;
     Vector3 moveDirection = Vector3.zero;
     float rotationX = 0;
 
@@ -25,6 +26,12 @@ public class FPScontroller : MonoBehaviour
 
     void Start()
     {
+        if (!IsOwner) // Check if this is the local player
+        {
+            playerCamera.enabled = false;
+            audioListener.enabled = false;
+        }
+
         characterController = GetComponent<CharacterController>();
         playerInput = GetComponent<PlayerInput>();
 
@@ -34,6 +41,8 @@ public class FPScontroller : MonoBehaviour
 
     void Update()
     {
+        if (!IsOwner) return;
+
         if (!canMove) return;
 
         #region Handles Movement

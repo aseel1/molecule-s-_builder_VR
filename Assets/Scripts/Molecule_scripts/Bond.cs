@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
-public class Bond : MonoBehaviour
+public class Bond : NetworkBehaviour
 {
     public GameObject molecule1;
     public GameObject molecule2;

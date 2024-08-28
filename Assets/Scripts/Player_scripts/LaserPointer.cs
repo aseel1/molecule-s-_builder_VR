@@ -1,7 +1,9 @@
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.EventSystems;
 
-public class LaserPointer : MonoBehaviour
+public class LaserPointer : NetworkBehaviour
 {
     public Transform handTransform;  // Reference to the hand (cube) transform
     public float laserDistance = 100f;  // Maximum distance for the laser
@@ -13,6 +15,12 @@ public class LaserPointer : MonoBehaviour
     {
         // Initialize the Line Renderer
         lineRenderer = GetComponent<LineRenderer>();
+        if (lineRenderer == null)
+        {
+            Debug.LogError("LineRenderer component is missing.");
+            return;
+        }
+
         lineRenderer.startWidth = 0.02f;
         lineRenderer.endWidth = 0.02f;
         lineRenderer.positionCount = 2;
@@ -25,6 +33,12 @@ public class LaserPointer : MonoBehaviour
 
     void Update()
     {
+        if (handTransform == null)
+        {
+            Debug.LogError("HandTransform is not assigned.");
+            return;
+        }
+
         // Cast a ray from the hand's position in the forward direction
         Ray ray = new Ray(handTransform.position, handTransform.forward);
         RaycastHit hit;
@@ -45,6 +59,19 @@ public class LaserPointer : MonoBehaviour
 
     private void OnClick()
     {
+        // Check if the click is over a UI element
+        if (EventSystem.current.IsPointerOverGameObject())
+        {
+            return;  // Exit the method to prevent any action
+        }
+
+        // Ensure lineRenderer is not null
+        if (lineRenderer == null)
+        {
+            Debug.LogError("LineRenderer is not assigned.");
+            return;
+        }
+
         // Optional: Change the color of the laser on click
         lineRenderer.material.color = Color.green;
     }

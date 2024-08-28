@@ -2,9 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;  // Import the new Input System package
-using UnityEngine.EventSystems;  // Import this namespace
+using UnityEngine.EventSystems;
+using Unity.Netcode;  // Import this namespace
 
-public class ElementSpawner : MonoBehaviour
+public class ElementSpawner : NetworkBehaviour
 {
     public GameObject hydrogenPrefab;
     public GameObject oxygenPrefab;
@@ -41,7 +42,6 @@ public class ElementSpawner : MonoBehaviour
         selectedElement = oxygenPrefab;
     }
 
-
     public void SelectCarbon()
     {
         selectedElement = carbonPrefab;
@@ -56,63 +56,98 @@ public class ElementSpawner : MonoBehaviour
         }
     }
 
-    private void OnClick()
+   private void OnClick()
+{
+    // Check if the click is over a UI element
+    if (EventSystem.current.IsPointerOverGameObject())
+    {
+        return;  // Exit the method to prevent spawning a sphere
+    }
+
+    // Ensure Camera.main is not null
+    if (Camera.main == null)
+    {
+        // If the main camera is not assigned, do nothing
+        return;
+    }
+
+    // Ensure Mouse.current is not null
+    if (Mouse.current == null)
+    {
+        Debug.LogError("Mouse is not detected.");
+        return;
+    }
+
+    Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
+
+    if (Keyboard.current.leftShiftKey.isPressed)
+    {
+        DeleteMolecule(ray);
+    }
+    else
+    {
+        // Regular spawn
+        float distance = 2f;
+        Vector3 spawnPosition = ray.GetPoint(distance);
+        SpawnElement(spawnPosition);
+    }
+}
+    private void OnRightClick()
     {
         // Check if the click is over a UI element
         if (EventSystem.current.IsPointerOverGameObject())
         {
             return;  // Exit the method to prevent spawning a sphere
         }
+
+        // Ensure Camera.main is not null
+        if (Camera.main == null)
+        {
+            Debug.LogError("Main Camera is not assigned.");
+            return;
+        }
+
+        // Ensure Mouse.current is not null
+        if (Mouse.current == null)
+        {
+            Debug.LogError("Mouse is not detected.");
+            return;
+        }
+
         Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
+        RaycastHit hit;
 
-        if (Keyboard.current.leftShiftKey.isPressed)
+        if (Physics.Raycast(ray, out hit))
         {
-            DeleteMolecule(ray);
-        }
-        else
-        {
-            // Regular spawn
-            float distance = 2f;
-            Vector3 spawnPosition = ray.GetPoint(distance);
-            SpawnElement(spawnPosition);
-        }
-    }
+            // Create a small overlap sphere at the hit point to detect nearby molecules
+            Collider[] colliders = Physics.OverlapSphere(hit.point, 0.5f); // Adjust the radius as needed
 
-   private void OnRightClick()
-{
-    Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
-    RaycastHit hit;
-
-    if (Physics.Raycast(ray, out hit))
-    {
-        // Create a small overlap sphere at the hit point to detect nearby molecules
-        Collider[] colliders = Physics.OverlapSphere(hit.point, 0.5f); // Adjust the radius as needed
-        
-        foreach (Collider collider in colliders)
-        {
-            GameObject clickedObject = collider.gameObject;
-
-            if (clickedObject.CompareTag("Molecule"))
+            foreach (Collider collider in colliders)
             {
-                if (Keyboard.current.leftShiftKey.isPressed)
+                GameObject clickedObject = collider.gameObject;
+
+                if (clickedObject.CompareTag("Molecule"))
                 {
-                    // Move entire group
-                    draggedMolecule = clickedObject;
-                    draggedGroup = draggedMolecule.GetComponentInParent<MoleculeGroup>();
-                }
-                else if (Keyboard.current.leftCtrlKey.isPressed)
-                {
-                    // Move single molecule and its connected bonds
-                    moleculeToMove = clickedObject;
-                    MoleculeGroup group = moleculeToMove.GetComponentInParent<MoleculeGroup>();
-                    if (group != null)
+                    if (Keyboard.current.leftShiftKey.isPressed)
                     {
-                        connectedBonds.Clear();
-                        foreach (GameObject bond in group.bonds)
+                        // Move entire group
+                        draggedMolecule = clickedObject;
+                        draggedGroup = draggedMolecule.GetComponentInParent<MoleculeGroup>();
+                    }
+                    else if (Keyboard.current.leftCtrlKey.isPressed)
+                    {
+                        // Move single molecule and its connected bonds
+                        moleculeToMove = clickedObject;
+                        MoleculeGroup group = moleculeToMove.GetComponentInParent<MoleculeGroup>();
+                        if (group != null)
                         {
-                            if (IsBondConnectedToMolecule(bond, moleculeToMove))
+                            connectedBonds.Clear();
+                            foreach (GameObject bond in group.bonds)
                             {
-                                connectedBonds.Add(bond);
+                                if (IsBondConnectedToMolecule(bond, moleculeToMove))
+                                {
+                                    connectedBonds.Add(bond);
+                                }
                             }
                         }
                     }
@@ -120,8 +155,6 @@ public class ElementSpawner : MonoBehaviour
             }
         }
     }
-}
-
 
     private void OnRightClickRelease()
     {

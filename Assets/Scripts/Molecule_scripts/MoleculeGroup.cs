@@ -2,9 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
+using Unity.Netcode;
 using UnityEngine;
 
-public class MoleculeGroup : MonoBehaviour
+public class MoleculeGroup : NetworkBehaviour
 {
     public List<GameObject> molecules = new List<GameObject>();  // List of molecules in the group
     public List<GameObject> bonds = new List<GameObject>();      // List of bonds in the group
@@ -47,6 +48,14 @@ public class MoleculeGroup : MonoBehaviour
     {
         if (!molecules.Contains(molecule))
         {
+
+            //! Ensure the molecule has been spawned on the network
+            var networkObject = molecule.GetComponent<NetworkObject>();
+            if (networkObject != null && !networkObject.IsSpawned)
+            {
+                networkObject.Spawn();  // Spawn the network object first
+            }
+
             molecules.Add(molecule);
             molecule.transform.SetParent(transform);  // Set the parent to the group for easy movement
 
@@ -90,6 +99,13 @@ public class MoleculeGroup : MonoBehaviour
     {
         if (!bonds.Contains(bond))
         {
+            //! Ensure the molecule has been spawned on the network
+            var networkObject = bond.GetComponent<NetworkObject>();
+            if (networkObject != null && !networkObject.IsSpawned)
+            {
+                networkObject.Spawn();  // Spawn the network object first
+            }
+
             bonds.Add(bond);
             bond.transform.SetParent(transform);  // Set the parent to the group for easy movement
         }

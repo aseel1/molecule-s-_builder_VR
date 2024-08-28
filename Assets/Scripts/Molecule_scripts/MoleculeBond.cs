@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
-public class MoleculeBond : MonoBehaviour
+public class MoleculeBond : NetworkBehaviour
 {
     public float bondDistance = 2f;  // Distance within which molecules will bond
     public GameObject bondPrefab;    // Prefab for the bond (e.g., a cylinder)
@@ -87,6 +88,15 @@ public class MoleculeBond : MonoBehaviour
             // Create a new group if none exists
             GameObject newGroup = Instantiate(moleculeGroupPrefab);
             MoleculeGroup moleculeGroup = newGroup.GetComponent<MoleculeGroup>();
+
+            //! Ensure the group is spawned on the network
+            var groupNetworkObject = newGroup.GetComponent<NetworkObject>();
+            if (groupNetworkObject != null && !groupNetworkObject.IsSpawned)
+            {
+                groupNetworkObject.Spawn();
+            }
+
+
             return moleculeGroup;
         }
     }
