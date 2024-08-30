@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;  // Import the new Input System package
 using UnityEngine.EventSystems;
-using Unity.Netcode;  // Import this namespace
+using Unity.Netcode;
+
 
 public class ElementSpawner : NetworkBehaviour
 {
@@ -20,6 +21,7 @@ public class ElementSpawner : NetworkBehaviour
 
     private void Awake()
     {
+        Debug.Log("ElementSpawner Awake");
         // Init left click
         clickAction = new InputAction(type: InputActionType.Button, binding: "<Mouse>/leftButton");
         clickAction.performed += ctx => OnClick();
@@ -34,80 +36,128 @@ public class ElementSpawner : NetworkBehaviour
 
     public void SelectHydrogen()
     {
+        Debug.Log("Hydrogen selected");
         selectedElement = hydrogenPrefab;
+        Debug.Log($"Selected element: {selectedElement}");
+
     }
 
     public void SelectOxygen()
     {
+        Debug.Log("Oxygen selected");
         selectedElement = oxygenPrefab;
+        Debug.Log($"Selected element: {selectedElement}");
+
     }
 
     public void SelectCarbon()
     {
+        Debug.Log("Carbon selected");
         selectedElement = carbonPrefab;
+        Debug.Log($"Selected element: {selectedElement}");
+
     }
 
-    // Call this method when clicking on the board to place the selected element
     public void SpawnElement(Vector3 position)
     {
         if (selectedElement != null)
         {
-            Instantiate(selectedElement, position, Quaternion.identity);
+            Debug.Log($"Spawning element request at position: {position}");
+            string prefabName = selectedElement.name;
+            SpawnElementServerRpc(prefabName, position);
+        }
+        else
+        {
+            Debug.LogError("No element selected to spawn.");
         }
     }
 
-   private void OnClick()
-{
-    // Check if the click is over a UI element
-    if (EventSystem.current.IsPointerOverGameObject())
+    [ServerRpc(RequireOwnership = false)]
+    private void SpawnElementServerRpc(string prefabName, Vector3 position)
     {
-        return;  // Exit the method to prevent spawning a sphere
+        Debug.Log("SpawnElementServerRpc called");
+
+        GameObject prefabToSpawn = null;
+
+        switch (prefabName)
+        {
+            case "Hydrogen":
+                prefabToSpawn = hydrogenPrefab;
+                break;
+            case "Oxygen":
+                prefabToSpawn = oxygenPrefab;
+                break;
+            case "Carbon":
+                prefabToSpawn = carbonPrefab;
+                break;
+            default:
+                Debug.LogError("Invalid prefab name.");
+                return;
+        }
+
+        if (prefabToSpawn != null)
+        {
+            GameObject spawnedObject = Instantiate(prefabToSpawn, position, Quaternion.identity);
+            NetworkObject networkObject = spawnedObject.GetComponent<NetworkObject>();
+            networkObject.Spawn();  // Ensure it is spawned across the network
+            Debug.Log("Element instantiated and spawned on server");
+        }
+        else
+        {
+            Debug.LogError("Failed to find the prefab to spawn.");
+        }
     }
 
-    // Ensure Camera.main is not null
-    if (Camera.main == null)
+    private void OnClick()
     {
-        // If the main camera is not assigned, do nothing
-        return;
-    }
-
-    // Ensure Mouse.current is not null
-    if (Mouse.current == null)
-    {
-        Debug.LogError("Mouse is not detected.");
-        return;
-    }
-
-    Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
-
-    if (Keyboard.current.leftShiftKey.isPressed)
-    {
-        DeleteMolecule(ray);
-    }
-    else
-    {
-        // Regular spawn
-        float distance = 2f;
-        Vector3 spawnPosition = ray.GetPoint(distance);
-        SpawnElement(spawnPosition);
-    }
-}
-    private void OnRightClick()
-    {
-        // Check if the click is over a UI element
+        Debug.Log("Left click detected");
         if (EventSystem.current.IsPointerOverGameObject())
         {
-            return;  // Exit the method to prevent spawning a sphere
+            Debug.Log("Click over UI element, ignoring");
+            return;
         }
 
-        // Ensure Camera.main is not null
         if (Camera.main == null)
         {
             Debug.LogError("Main Camera is not assigned.");
             return;
         }
 
-        // Ensure Mouse.current is not null
+        if (Mouse.current == null)
+        {
+            Debug.LogError("Mouse is not detected.");
+            return;
+        }
+
+        Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
+
+        if (Keyboard.current.leftShiftKey.isPressed)
+        {
+            DeleteMolecule(ray);
+        }
+        else
+        {
+            float distance = 2f;
+            Vector3 spawnPosition = ray.GetPoint(distance);
+            SpawnElement(spawnPosition);
+        }
+    }
+
+    private void OnRightClick()
+    {
+        Debug.Log("Right click detected");
+        if (EventSystem.current.IsPointerOverGameObject())
+        {
+            Debug.Log("Right click over UI element, ignoring");
+            return;
+        }
+
+        if (Camera.main == null)
+        {
+            Debug.LogError("Main Camera is not assigned.");
+            return;
+        }
+
         if (Mouse.current == null)
         {
             Debug.LogError("Mouse is not detected.");
@@ -119,8 +169,7 @@ public class ElementSpawner : NetworkBehaviour
 
         if (Physics.Raycast(ray, out hit))
         {
-            // Create a small overlap sphere at the hit point to detect nearby molecules
-            Collider[] colliders = Physics.OverlapSphere(hit.point, 0.5f); // Adjust the radius as needed
+            Collider[] colliders = Physics.OverlapSphere(hit.point, 0.5f);
 
             foreach (Collider collider in colliders)
             {
@@ -130,13 +179,12 @@ public class ElementSpawner : NetworkBehaviour
                 {
                     if (Keyboard.current.leftShiftKey.isPressed)
                     {
-                        // Move entire group
                         draggedMolecule = clickedObject;
                         draggedGroup = draggedMolecule.GetComponentInParent<MoleculeGroup>();
+                        Debug.Log("Dragging entire group");
                     }
                     else if (Keyboard.current.leftCtrlKey.isPressed)
                     {
-                        // Move single molecule and its connected bonds
                         moleculeToMove = clickedObject;
                         MoleculeGroup group = moleculeToMove.GetComponentInParent<MoleculeGroup>();
                         if (group != null)
@@ -149,6 +197,7 @@ public class ElementSpawner : NetworkBehaviour
                                     connectedBonds.Add(bond);
                                 }
                             }
+                            Debug.Log("Dragging single molecule with connected bonds");
                         }
                     }
                 }
@@ -158,6 +207,7 @@ public class ElementSpawner : NetworkBehaviour
 
     private void OnRightClickRelease()
     {
+        Debug.Log("Right click released");
         draggedMolecule = null;
         draggedGroup = null;
         moleculeToMove = null;
@@ -166,46 +216,81 @@ public class ElementSpawner : NetworkBehaviour
 
     private void Update()
     {
+        if (!IsServer) return; // Ensure bond creation only runs on the server
         if (draggedMolecule != null && draggedGroup != null)
         {
-            // Move the entire group
             Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
-            Vector3 targetPosition = ray.GetPoint(2f);  // Adjust distance as needed
+            Vector3 targetPosition = ray.GetPoint(2f);
             Vector3 delta = targetPosition - draggedMolecule.transform.position;
 
-            draggedGroup.transform.position += delta;  // Move the entire group
+            draggedGroup.transform.position += delta;
+            Debug.Log("Moving entire group");
         }
         else if (moleculeToMove != null)
         {
-            // Move the single molecule and its connected bonds
             Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
-            Vector3 targetPosition = ray.GetPoint(2f);  // Adjust distance as needed
+            Vector3 targetPosition = ray.GetPoint(2f);
             Vector3 delta = targetPosition - moleculeToMove.transform.position;
 
-            moleculeToMove.transform.position += delta;  // Move the molecule
+            moleculeToMove.transform.position += delta;
             foreach (GameObject bond in connectedBonds)
             {
                 UpdateBondPosition(bond);
             }
+            Debug.Log("Moving single molecule and connected bonds");
         }
     }
 
     private bool IsBondConnectedToMolecule(GameObject bond, GameObject molecule)
     {
-        // Check if the bond is connected to the molecule
         return bond.GetComponent<Bond>().IsConnectedTo(molecule);
     }
 
     private void UpdateBondPosition(GameObject bond)
     {
-        Bond bondComponent = bond.GetComponent<Bond>();
-        if (bondComponent != null)
+        NetworkObject networkObject = bond.GetComponent<NetworkObject>();
+        if (networkObject != null)
         {
-            Vector3 startPosition = bondComponent.molecule1.transform.position;
-            Vector3 endPosition = bondComponent.molecule2.transform.position;
-            bond.transform.position = (startPosition + endPosition) / 2;
-            bond.transform.LookAt(endPosition);
-            bond.transform.localScale = new Vector3(bond.transform.localScale.x, bond.transform.localScale.y, Vector3.Distance(startPosition, endPosition));
+            UpdateBondPositionServerRpc(networkObject);
+        }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void UpdateBondPositionServerRpc(NetworkObjectReference bondRef)
+    {
+        Debug.Log("UpdateBondPosition ServerRpcs");
+
+        if (bondRef.TryGet(out NetworkObject bond))
+        {
+
+            Bond bondComponent = bond.GetComponent<Bond>();
+            if (bondComponent != null)
+            {
+                Vector3 startPosition = bondComponent.molecule1.transform.position;
+                Vector3 endPosition = bondComponent.molecule2.transform.position;
+                bond.transform.position = (startPosition + endPosition) / 2;
+                bond.transform.LookAt(endPosition);
+                bond.transform.localScale = new Vector3(bond.transform.localScale.x, bond.transform.localScale.y, Vector3.Distance(startPosition, endPosition));
+
+                // Propagate the update to all clients
+                UpdateBondPositionClientRpc(bondRef);
+            }
+        }
+    }
+    [ClientRpc]
+    private void UpdateBondPositionClientRpc(NetworkObjectReference bondRef)
+    {
+        if (bondRef.TryGet(out NetworkObject bond))
+        {
+            Bond bondComponent = bond.GetComponent<Bond>();
+            if (bondComponent != null)
+            {
+                Vector3 startPosition = bondComponent.molecule1.transform.position;
+                Vector3 endPosition = bondComponent.molecule2.transform.position;
+                bond.transform.position = (startPosition + endPosition) / 2;
+                bond.transform.LookAt(endPosition);
+                bond.transform.localScale = new Vector3(bond.transform.localScale.x, bond.transform.localScale.y, Vector3.Distance(startPosition, endPosition));
+            }
         }
     }
 
@@ -216,15 +301,12 @@ public class ElementSpawner : NetworkBehaviour
         {
             GameObject clickedObject = hit.collider.gameObject;
 
-            // Check if the clicked object is a molecule
             if (clickedObject.CompareTag("Molecule"))
             {
-                // Find the MoleculeGroup this molecule belongs to
                 MoleculeGroup group = clickedObject.GetComponentInParent<MoleculeGroup>();
                 if (group != null)
                 {
                     group.RemoveMolecule(clickedObject);
-                    // Check if the group is empty after removal and destroy it if necessary
                     if (group.molecules.Count == 0 && group.bonds.Count == 0)
                     {
                         Destroy(group.gameObject);
@@ -232,9 +314,9 @@ public class ElementSpawner : NetworkBehaviour
                 }
                 else
                 {
-                    // If no group, simply destroy the molecule
                     Destroy(clickedObject);
                 }
+                Debug.Log("Molecule deleted");
             }
         }
     }

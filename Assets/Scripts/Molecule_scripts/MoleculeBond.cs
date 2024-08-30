@@ -11,6 +11,8 @@ public class MoleculeBond : NetworkBehaviour
 
     void Update()
     {
+        if (!IsServer) return; // Ensure bond creation only runs on the server
+
         // Find all molecules (spheres) in the scene
         List<GameObject> molecules = new List<GameObject>(GameObject.FindGameObjectsWithTag("Molecule"));
 
@@ -32,32 +34,110 @@ public class MoleculeBond : NetworkBehaviour
         if (molecule1.GetComponent<Bonded>() && molecule2.GetComponent<Bonded>())
             return;
 
-        // Create a bond (e.g., a cylinder) between the two molecules
-        Vector3 bondPosition = (molecule1.transform.position + molecule2.transform.position) / 2;
-        GameObject bond = Instantiate(bondPrefab, bondPosition, Quaternion.identity);
+        // Call the Server RPC to create the bond
+        //! here is okay to call the NetworkObjectId since the molecule is spawned in the elementspawner.
+        CreateBondServerRpc(molecule1.GetComponent<NetworkObject>().NetworkObjectId, molecule2.GetComponent<NetworkObject>().NetworkObjectId);
+    }
+    [ServerRpc(RequireOwnership = false)]
+    void CreateBondServerRpc(ulong molecule1Id, ulong molecule2Id)
+    {
+        Debug.Log($"CreateBondServerRpc called with molecule1Id: {molecule1Id}, molecule2Id: {molecule2Id}");
 
-        bond.AddComponent<Bond>();
-        bond.GetComponent<Bond>().molecule1 = molecule1;
-        bond.GetComponent<Bond>().molecule2 = molecule2;
+        NetworkObject molecule1 = null;
+        NetworkObject molecule2 = null;
 
-        // Adjust the bond's rotation and scale
-        bond.transform.LookAt(molecule2.transform);
-        bond.transform.localScale = new Vector3(bond.transform.localScale.x, bond.transform.localScale.y, Vector3.Distance(molecule1.transform.position, molecule2.transform.position));
+        if (!NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(molecule1Id, out molecule1))
+        {
+            Debug.LogError($"Failed to resolve NetworkObjectId for molecule1: {molecule1Id}");
+        }
 
-        // Find or create a MoleculeGroup to manage the molecules and bonds
-        MoleculeGroup group = FindOrCreateGroup(molecule1, molecule2);
+        if (!NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(molecule2Id, out molecule2))
+        {
+            Debug.LogError($"Failed to resolve NetworkObjectId for molecule2: {molecule2Id}");
+        }
+
+        if (molecule1 == null)
+        {
+            Debug.LogError("molecule1 is null");
+        }
+
+        if (molecule2 == null)
+        {
+            Debug.LogError("molecule2 is null");
+        }
+
+        if (molecule1 != null && molecule2 != null)
+        {
+            Debug.Log("Both molecules are resolved successfully");
+
+            // Create a bond (e.g., a cylinder) between the two molecules
+            Vector3 bondPosition = (molecule1.transform.position + molecule2.transform.position) / 2;
+            GameObject bond = Instantiate(bondPrefab, bondPosition, Quaternion.identity);
+
+
+            // Ensure the bond is spawned on the network
+            NetworkObject bondNetworkObject = bond.GetComponent<NetworkObject>();
+            if (bondNetworkObject == null)
+            {
+                Debug.LogError("bondPrefab does not have a NetworkObject component");
+                return;
+            }
+
+            bondNetworkObject.Spawn();
+            Debug.Log("Bond spawned successfully");
+
+            Bond bondComponent = bond.AddComponent<Bond>();
+            if (bondComponent == null)
+            {
+                Debug.LogError("Failed to add Bond component to bond");
+                return;
+            }
+
+            bondComponent.molecule1 = molecule1.gameObject;
+            bondComponent.molecule2 = molecule2.gameObject;
+
+            // Adjust the bond's rotation and scale
+            bond.transform.LookAt(molecule2.transform);
+            bond.transform.localScale = new Vector3(bond.transform.localScale.x, bond.transform.localScale.y, Vector3.Distance(molecule1.transform.position, molecule2.transform.position));
+
+            // Find or create a MoleculeGroup to manage the molecules and bonds
+            MoleculeGroup group = FindOrCreateGroup(molecule1.gameObject, molecule2.gameObject);
+
+            if (group == null)
+            {
+                // Create a new group synchronously
+                GameObject newGroup = Instantiate(moleculeGroupPrefab);
+                MoleculeGroup moleculeGroup = newGroup.GetComponent<MoleculeGroup>();
+
+                // Ensure the group is spawned on the network
+                NetworkObject groupNetworkObject = newGroup.GetComponent<NetworkObject>();
+                groupNetworkObject.Spawn();
+                Debug.Log("New MoleculeGroup spawned successfully");
+
+                // Add the molecules to the new group using ServerRpc
+                moleculeGroup.AddMoleculeServerRpc(molecule1.GetComponent<NetworkObject>());
+                moleculeGroup.AddMoleculeServerRpc(molecule2.GetComponent<NetworkObject>());
+
+                group = moleculeGroup;
+            }
 
 
 
+            // Add molecules and bond to the group using ServerRpc
+            group.AddMoleculeServerRpc(molecule1.GetComponent<NetworkObject>());
+            group.AddMoleculeServerRpc(molecule2.GetComponent<NetworkObject>());
+            group.AddBondServerRpc(new NetworkObjectReference(bondNetworkObject));
+            Debug.Log("Molecules and bond added to the group");
 
-        // Add molecules and bond to the group
-        group.AddMolecule(molecule1);
-        group.AddMolecule(molecule2);
-        group.AddBond(bond);
-
-        // Mark the molecules as bonded
-        molecule1.AddComponent<Bonded>();
-        molecule2.AddComponent<Bonded>();
+            // Mark the molecules as bonded
+            molecule1.gameObject.AddComponent<Bonded>();
+            molecule2.gameObject.AddComponent<Bonded>();
+            Debug.Log("Molecules marked as bonded");
+        }
+        else
+        {
+            Debug.LogError("Failed to resolve NetworkObjectId for one or both molecules.");
+        }
     }
 
     MoleculeGroup FindOrCreateGroup(GameObject molecule1, GameObject molecule2)
@@ -85,19 +165,29 @@ public class MoleculeBond : NetworkBehaviour
         }
         else
         {
-            // Create a new group if none exists
-            GameObject newGroup = Instantiate(moleculeGroupPrefab);
-            MoleculeGroup moleculeGroup = newGroup.GetComponent<MoleculeGroup>();
+            // Call the Server RPC to create a new group
+            CreateGroupServerRpc(molecule1.GetComponent<NetworkObject>().NetworkObjectId, molecule2.GetComponent<NetworkObject>().NetworkObjectId);
+            return null; // Return null for now, the group will be created asynchronously
+        }
+    }
 
-            //! Ensure the group is spawned on the network
-            var groupNetworkObject = newGroup.GetComponent<NetworkObject>();
-            if (groupNetworkObject != null && !groupNetworkObject.IsSpawned)
-            {
-                groupNetworkObject.Spawn();
-            }
+    [ServerRpc(RequireOwnership = false)]
+    void CreateGroupServerRpc(ulong molecule1Id, ulong molecule2Id)
+    {
+        // Create a new group if none exists
+        GameObject newGroup = Instantiate(moleculeGroupPrefab);
+        MoleculeGroup moleculeGroup = newGroup.GetComponent<MoleculeGroup>();
 
+        // Ensure the group is spawned on the network
+        NetworkObject groupNetworkObject = newGroup.GetComponent<NetworkObject>();
+        groupNetworkObject.Spawn();
 
-            return moleculeGroup;
+        // Add the molecules to the new group using ServerRpc
+        if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(molecule1Id, out NetworkObject molecule1) &&
+            NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(molecule2Id, out NetworkObject molecule2))
+        {
+            moleculeGroup.AddMoleculeServerRpc(molecule1);
+            moleculeGroup.AddMoleculeServerRpc(molecule2);
         }
     }
 
@@ -106,12 +196,23 @@ public class MoleculeBond : NetworkBehaviour
         // Transfer all molecules and bonds from group2 to group1
         foreach (GameObject molecule in group2.molecules)
         {
-            group1.AddMolecule(molecule);
+            NetworkObject moleculeNetworkObject = molecule.GetComponent<NetworkObject>();
+            if (moleculeNetworkObject != null)
+            {
+                group1.AddMoleculeServerRpc(moleculeNetworkObject);
+            }
         }
+
         foreach (GameObject bond in group2.bonds)
         {
-            group1.AddBond(bond);
+            NetworkObject bondNetworkObject = bond.GetComponent<NetworkObject>();
+            if (bondNetworkObject != null)
+            {
+                // Add the bond to group1 via ServerRpc
+                group1.AddBondServerRpc(new NetworkObjectReference(bondNetworkObject));
+            }
         }
+
         // Destroy the now empty group2
         Destroy(group2.gameObject);
     }

@@ -15,51 +15,59 @@ public class MoleculeGroup : NetworkBehaviour
     private bool isFormulaPanelPositioned = false; // Flag to check if the formula panel is positioned
 
     private TextMeshProUGUI formulaText;
-    // A dictionary to track the count of each type of element (e.g., H, O)
     private Dictionary<string, int> elementCounts = new Dictionary<string, int>();
-
 
     private void Start()
     {
-        // Find the specific canvas
+        Debug.Log("MoleculeGroup Start");
         Canvas specificCanvas = GameObject.Find("MoleculeTable(canvas)").GetComponent<Canvas>();
         if (formulaPanelPrefab != null && specificCanvas != null)
         {
-            // Instantiate the formula panel under the specific canvas
             formulaPanelInstance = Instantiate(formulaPanelPrefab, specificCanvas.transform);
-
-
             formulaText = formulaPanelInstance.transform.Find("Fourmla_text").GetComponent<TextMeshProUGUI>();
-            // Initialize the MoleculeDisplay with the formulaText
             MoleculeDisplay display = GetComponent<MoleculeDisplay>();
             if (display != null)
             {
                 display.InitializeDisplay(formulaText);
             }
-
             PositionFormulaPanel();
-
         }
     }
 
 
-    // Add a molecule to the group
-    public void AddMolecule(GameObject molecule)
+    [ServerRpc(RequireOwnership = false)]
+    public void AddMoleculeServerRpc(NetworkObjectReference moleculeReference)
     {
+        Debug.Log("Server: Adding molecule via ServerRpc");
+
+        if (moleculeReference.TryGet(out NetworkObject moleculeObject))
+        {
+            GameObject molecule = moleculeObject.gameObject;
+            AddMoleculeToList(molecule);
+
+            // Notify all clients about the added molecule
+            AddMoleculeClientRpc(moleculeReference);
+        }
+    }
+
+    [ClientRpc]
+    private void AddMoleculeClientRpc(NetworkObjectReference moleculeReference)
+    {
+        if (moleculeReference.TryGet(out NetworkObject moleculeObject))
+        {
+            GameObject molecule = moleculeObject.gameObject;
+            AddMoleculeToList(molecule);
+        }
+    }
+
+    private void AddMoleculeToList(GameObject molecule)
+    {
+        Debug.Log($"Adding molecule: {molecule.name}");
         if (!molecules.Contains(molecule))
         {
-
-            //! Ensure the molecule has been spawned on the network
-            var networkObject = molecule.GetComponent<NetworkObject>();
-            if (networkObject != null && !networkObject.IsSpawned)
-            {
-                networkObject.Spawn();  // Spawn the network object first
-            }
-
             molecules.Add(molecule);
-            molecule.transform.SetParent(transform);  // Set the parent to the group for easy movement
+            molecule.transform.SetParent(transform);
 
-            // Update element count based on the name of the molecule
             string elementType = molecule.name.Replace("(Clone)", "").Trim();
             if (ElementSymbols.Symbols.ContainsKey(elementType))
             {
@@ -74,50 +82,66 @@ public class MoleculeGroup : NetworkBehaviour
             {
                 elementCounts[elementType] = 1;
             }
+
             NotifyMoleculeGroupChanged();
-
-
         }
     }
 
-    // Method to position the formula panel
     public void PositionFormulaPanel()
     {
-
         if (!isFormulaPanelPositioned && formulaPanelInstance != null)
         {
-
-            Vector3 moleculePosition = molecules[1].transform.position; // Use the position of the second molecule
-            Vector3 offset = new Vector3(3, 0, 0); // Adjust the offset as needed
+            Vector3 moleculePosition = molecules[1].transform.position;
+            Vector3 offset = new Vector3(3, 0, 0);
             formulaPanelInstance.transform.position = moleculePosition + offset;
-            isFormulaPanelPositioned = true; // Set the flag to true after positioning
+            isFormulaPanelPositioned = true;
+            Debug.Log("Formula panel positioned");
         }
     }
 
-    // Add a bond to the group
-    public void AddBond(GameObject bond)
+ 
+    [ServerRpc(RequireOwnership = false)]
+    public void AddBondServerRpc(NetworkObjectReference bondReference)
     {
+        Debug.Log("Server: Adding bond via ServerRpc");
+
+        if (bondReference.TryGet(out NetworkObject bondObject))
+        {
+            GameObject bond = bondObject.gameObject;
+            AddBondToList(bond);
+
+            // Notify all clients about the added bond
+            AddBondClientRpc(bondReference);
+        }
+    }
+
+    [ClientRpc]
+    private void AddBondClientRpc(NetworkObjectReference bondReference)
+    {
+        if (bondReference.TryGet(out NetworkObject bondObject))
+        {
+            GameObject bond = bondObject.gameObject;
+            AddBondToList(bond);
+        }
+    }
+
+    private void AddBondToList(GameObject bond)
+    {
+        Debug.Log($"Adding bond: {bond.name}");
         if (!bonds.Contains(bond))
         {
-            //! Ensure the molecule has been spawned on the network
-            var networkObject = bond.GetComponent<NetworkObject>();
-            if (networkObject != null && !networkObject.IsSpawned)
-            {
-                networkObject.Spawn();  // Spawn the network object first
-            }
-
             bonds.Add(bond);
-            bond.transform.SetParent(transform);  // Set the parent to the group for easy movement
+            bond.transform.SetParent(transform);
         }
     }
 
-    // Remove a molecule and its associated bonds
     public void RemoveMolecule(GameObject molecule)
     {
+        Debug.Log($"Removing molecule: {molecule.name}");
         if (molecules.Contains(molecule))
         {
             molecules.Remove(molecule);
-            // Update element count based on the name of the molecule
+
             string elementType = molecule.name.Replace("(Clone)", "").Trim();
             if (ElementSymbols.Symbols.ContainsKey(elementType))
             {
@@ -134,32 +158,27 @@ public class MoleculeGroup : NetworkBehaviour
             }
 
             Destroy(molecule);
-
-            // Optionally remove associated bonds
             RemoveAssociatedBonds(molecule);
             NotifyMoleculeGroupChanged();
-
         }
     }
 
-    // Remove associated bonds when a molecule is removed
     private void RemoveAssociatedBonds(GameObject molecule)
     {
         for (int i = bonds.Count - 1; i >= 0; i--)
         {
-
             if (bonds[i].GetComponent<Bond>().IsConnectedTo(molecule))
             {
-                Debug.Log("they are");
+                Debug.Log($"Removing bond: {bonds[i].name}");
                 Destroy(bonds[i]);
                 bonds.RemoveAt(i);
             }
         }
     }
 
-    // Destroy the entire group
     public void DestroyGroup()
     {
+        Debug.Log("Destroying group");
         foreach (var molecule in molecules)
         {
             Destroy(molecule);
@@ -181,27 +200,24 @@ public class MoleculeGroup : NetworkBehaviour
             display.OnMoleculeGroupChanged();
         }
     }
-    // Get the molecular formula as a string    // Get the molecular formula as a string
+
     public string GetMolecularFormula()
     {
-        // Define the order of elements
-        List<string> elementOrder = new List<string> { "C", "H", "O", "N", "S", "P" }; // Add more elements as needed
+        List<string> elementOrder = new List<string> { "C", "H", "O", "N", "S", "P" };
 
-        // Sort the elements based on the defined order
         var sortedElements = elementCounts.OrderBy(kv =>
         {
             int index = elementOrder.IndexOf(kv.Key);
-            return index == -1 ? int.MaxValue : index; // Elements not in the list will be placed at the end
-        }).ThenBy(kv => kv.Key); // Secondary sort by element name
+            return index == -1 ? int.MaxValue : index;
+        }).ThenBy(kv => kv.Key);
 
-        // Build the formula string
         string formula = "";
         foreach (var element in sortedElements)
         {
             formula += element.Key;
             if (element.Value > 1)
             {
-                formula += $"<sub>{element.Value}</sub>"; // Display of the formula text. (with style small number)
+                formula += $"<sub>{element.Value}</sub>";
             }
         }
         return formula;
