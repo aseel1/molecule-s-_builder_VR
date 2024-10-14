@@ -51,7 +51,7 @@ Make sure you have the following installed on your system:
 To clone the repository, open a terminal and run:
 
 ```bash
-git clone https://github.com/your-username/your-repository-name.git
+git clone https://github.com/aseel1/molecule-s-_builder_VR.git
 ```
 ### 2. Open the Project in Unity
 
@@ -66,15 +66,21 @@ The following Unity packages are required to run the project. Make sure they are
 - **Input System** (for player controls)
 - **Netcode for GameObjects** (for multiplayer functionality)
 - **XR Interaction Toolkit** (for VR interaction)
+- **And there are other Packages which is required from Unity-Asset Store such as:Lowpoly Enviroment & POLYGON(Payment required or free for students)**
 
-#### Steps to install packages:
+#### Steps to install packages and Assets:
 
 1. In Unity, go to **Window > Package Manager**.
-2. In the search bar, look for each package:
-   - `Input System`
-   - `Netcode for GameObjects`
-   - `XR Interaction Toolkit`
+2. In the search bar, look for each package mentiond above.
 3. Install each of these packages by clicking **Install**.
+
+**Ensure all assets are correctly imported by doing the following:**
+
+1. Go to Assets > Import Package > Custom Package.
+2. Select the MoleculeAssets.unitypackage included in this repository (if provided) or manually add models and prefabs related to molecule building.
+3. Make sure the molecule models, bonds, and other prefabs are in the appropriate directories:
+- Assets/Models
+- Assets/Prefabs
 
 ### 4. Project Settings Configuration
 
@@ -90,6 +96,11 @@ Some specific settings need to be configured before running the project:
   If you're using VR, configure XR settings:
   - Go to **Edit > Project Settings > XR Plug-in Management**.
   - Enable **OpenXR** for your target platform (e.g., Windows, Android).
+  - **VR Controls Configuration Note**:
+     Additional changes are required to configure the VR controls (e.g., movements and interaction).
+    These configurations must be done manually at the programmer level within Unity:
+    Customize the movement controls and actions for VR as per the project needs.
+    Ensure the correct input mappings for VR controllers.
 
 ### 5. Build and Play
 
@@ -100,5 +111,8 @@ Now that the project is set up, you can either build the project or run it in Un
 3. Click **Build and Run** to build and play on the selected platform.
 
 Alternatively, you can press **Play** in the Unity editor to test the project in editor mode.
+
+## Gameplay Tutorial
+
 
 
