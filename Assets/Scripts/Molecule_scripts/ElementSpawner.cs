@@ -19,6 +19,21 @@ public class ElementSpawner : NetworkBehaviour
     private GameObject moleculeToMove;
     private List<GameObject> connectedBonds = new List<GameObject>();
 
+    private void Start()
+    {
+        StartCoroutine(WaitForMainCamera());
+    }
+
+    private IEnumerator WaitForMainCamera()
+    {
+        while (Camera.main == null)
+        {
+            Debug.Log("Waiting for Main Camera to be assigned...");
+            yield return null;
+        }
+        Debug.Log("Main Camera assigned.");
+    }
+
     private void Awake()
     {
         Debug.Log("ElementSpawner Awake");
@@ -66,10 +81,7 @@ public class ElementSpawner : NetworkBehaviour
             string prefabName = selectedElement.name;
             SpawnElementServerRpc(prefabName, position);
         }
-        else
-        {
-            Debug.LogError("No element selected to spawn.");
-        }
+
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -116,12 +128,12 @@ public class ElementSpawner : NetworkBehaviour
             Debug.Log("Click over UI element, ignoring");
             return;
         }
-
         if (Camera.main == null)
         {
             Debug.LogError("Main Camera is not assigned.");
             return;
         }
+
 
         if (Mouse.current == null)
         {
@@ -208,23 +220,56 @@ public class ElementSpawner : NetworkBehaviour
     private void OnRightClickRelease()
     {
         Debug.Log("Right click released");
-        draggedMolecule = null;
-        draggedGroup = null;
-        moleculeToMove = null;
-        connectedBonds.Clear();
+
+        if (draggedMolecule != null)
+        {
+            NetworkObject networkObject = draggedMolecule.GetComponent<NetworkObject>();
+
+
+
+            if (networkObject != null)
+            {
+                draggedMolecule = null;
+                draggedGroup = null;
+                Debug.Log("Released dragged molecule and group");
+            }
+            else
+            {
+                Debug.LogWarning("You are not the owner of the dragged molecule");
+            }
+        }
+
+        if (moleculeToMove != null)
+        {
+            NetworkObject networkObject = moleculeToMove.GetComponent<NetworkObject>();
+            if (networkObject != null)
+            {
+                moleculeToMove = null;
+                connectedBonds.Clear();
+                Debug.Log("Released molecule to move and cleared connected bonds");
+            }
+            else
+            {
+                Debug.LogWarning("You are not the owner of the molecule to move");
+            }
+        }
     }
 
     private void Update()
     {
-        if (!IsServer) return; // Ensure bond creation only runs on the server
+
+
+
+
+
         if (draggedMolecule != null && draggedGroup != null)
         {
             Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
             Vector3 targetPosition = ray.GetPoint(2f);
             Vector3 delta = targetPosition - draggedMolecule.transform.position;
 
-            draggedGroup.transform.position += delta;
-            Debug.Log("Moving entire group");
+            MoveGroupServerRpc(draggedGroup.GetComponent<NetworkObject>().NetworkObjectId, delta);
+           //! Debug.Log("Moving entire group");
         }
         else if (moleculeToMove != null)
         {
@@ -237,14 +282,53 @@ public class ElementSpawner : NetworkBehaviour
             {
                 UpdateBondPosition(bond);
             }
-            Debug.Log("Moving single molecule and connected bonds");
+            //! Debug.Log("Moving single molecule and connected bonds");
+        }
+
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void MoveGroupServerRpc(ulong groupId, Vector3 delta)
+    {
+        NetworkObject networkObject = NetworkManager.Singleton.SpawnManager.SpawnedObjects[groupId];
+        if (networkObject != null)
+        {
+            MoleculeGroup group = networkObject.GetComponent<MoleculeGroup>();
+            if (group != null)
+            {
+                group.transform.position += delta;
+                //!Debug.Log("Moving entire group on server");
+
+                // Propagate the movement to all clients
+                MoveGroupClientRpc(groupId, group.transform.position);
+            }
         }
     }
+
+    [ClientRpc]
+    private void MoveGroupClientRpc(ulong groupId, Vector3 newPosition)
+    {
+        NetworkObject networkObject = NetworkManager.Singleton.SpawnManager.SpawnedObjects[groupId];
+        if (networkObject != null)
+        {
+            MoleculeGroup group = networkObject.GetComponent<MoleculeGroup>();
+            if (group != null)
+            {
+                group.transform.position = newPosition;
+                //! Debug.Log("Moving entire group on client");
+            }
+        }
+    }
+
+
+
 
     private bool IsBondConnectedToMolecule(GameObject bond, GameObject molecule)
     {
         return bond.GetComponent<Bond>().IsConnectedTo(molecule);
     }
+
+
 
     private void UpdateBondPosition(GameObject bond)
     {
@@ -258,7 +342,7 @@ public class ElementSpawner : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     private void UpdateBondPositionServerRpc(NetworkObjectReference bondRef)
     {
-        Debug.Log("UpdateBondPosition ServerRpcs");
+        //! Debug.Log("UpdateBondPosition ServerRpcs");
 
         if (bondRef.TryGet(out NetworkObject bond))
         {
@@ -293,6 +377,8 @@ public class ElementSpawner : NetworkBehaviour
             }
         }
     }
+
+
 
     private void DeleteMolecule(Ray ray)
     {

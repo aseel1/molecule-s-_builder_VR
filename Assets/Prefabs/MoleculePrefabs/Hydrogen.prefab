@@ -147,7 +147,7 @@ GameObject:
   - component: {fileID: 545128789134861264}
   - component: {fileID: 1688611526182234519}
   - component: {fileID: 3310882100777183983}
-  - component: {fileID: -8650541098692169720}
+  - component: {fileID: -7277847325937645804}
   m_Layer: 0
   m_Name: Hydrogen
   m_TagString: Molecule
@@ -263,7 +263,7 @@ MonoBehaviour:
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
---- !u!114 &-8650541098692169720
+--- !u!114 &-7277847325937645804
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -272,7 +272,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 4770564884934248248}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e96cb6065543e43c4a752faaa1468eb1, type: 3}
+  m_Script: {fileID: 11500000, guid: df2868252ab5c4d1da357e8f11f1b524, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   UseUnreliableDeltas: 0
