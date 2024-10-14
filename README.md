@@ -1,6 +1,8 @@
 # Unity Molecular Builder🧪⚛🦠
-📜This project is a molecule builder tool developed in Unity. It allows users to spawn, bond, and manipulate molecules within a 3D space. The tool supports dynamic molecule manipulation, including moving individual molecules and entire molecular structures, with automatic updates to the molecular formula displayed beneath the molecule group.
-It also includes multi-player building for groups to build and learn molecules togther.
+<img src="https://github.com/user-attachments/assets/58983dba-46fb-4e03-8c64-77c438e6ca23" alt="Description of image" width="900" height="200">
+
+**📜This project is a molecule builder tool developed in Unity. It allows users to spawn, bond, and manipulate molecules within a 3D space. The tool supports dynamic molecule manipulation, including moving individual molecules and entire molecular structures, with automatic updates to the molecular formula displayed beneath the molecule group.
+It also includes multi-player building for groups to build and learn molecules togther.**
 
 
 ### 🚀  Features
@@ -113,6 +115,48 @@ Now that the project is set up, you can either build the project or run it in Un
 Alternatively, you can press **Play** in the Unity editor to test the project in editor mode.
 
 ## Gameplay Tutorial
+### launching the game 
+- For Solo building Press the Host button
+- For Multi-player Building the first player should be the Host. and the others players should be logged in as clients.
+<img src="https://github.com/user-attachments/assets/22135530-4cb7-495e-89e4-dab6a5892212" alt="Description of image" width="700" height="400">
+
+### Bulding Molecule
+1. The player should navigate to the MoleculeTable and choose the atom.
+2. by pressing on the atom the player choose it and can start building them by pressing Left-Clicks.
+
+https://github.com/user-attachments/assets/e5851e6b-e126-4fc6-9335-05120803580c
+
+### Adding Molecules create UI formula automatically 
+
+https://github.com/user-attachments/assets/cf2d7e23-b35b-443a-b596-28ebdd555716
+
+### Moving Molecules using Ctrl+RightClick (single atom) or Shift+RightClick (Whole structre) or deletion Shift+leftClick
+
+
+https://github.com/user-attachments/assets/e00ae18a-7c23-4498-be79-4bc2f672e9af
+
+### FULL tutoriall.
+
+https://github.com/user-attachments/assets/a3c870ef-5785-4c97-b1c7-989bddafbe45
+
+## 📄 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Credits
+**This Project was done As a semester project for a BSc in Computer science at the University of Haifa, under the supervision of Prof. Roi Poranne**
+- **Mr. ASEEL SHAHEEN** - Creator of Unity Molecular Builder
+- **Ms. AYLEEN Monayer** - Creator of Unity Molecular Builder
+- **Prof. Roi Poranne** - Supervisior and Mentor
+## ☎Contact
+- Github Profile : https://github.com/aseel1
+- 📧Email address  : aseelshaheen1@gmail.com
+- linkedIn       :https://www.linkedin.com/in/aseel-shaheen-8983b6279/ 
+
+
+
+
+
+
 
 
 
