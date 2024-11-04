@@ -145,7 +145,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Credits
 **This Project was done As a semester project for a BSc in Computer science at the University of Haifa, under the supervision of Prof. Roi Poranne**
 - **Mr. ASEEL SHAHEEN** - Creator of Unity Molecular Builder
-- **Ms. AYLEEN Monayer** - Creator of Unity Molecular Builder
 - **Prof. Roi Poranne** - Supervisior and Mentor
 ## ☎Contact
 - Github Profile : https://github.com/aseel1
